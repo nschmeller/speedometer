@@ -22,23 +22,13 @@ jobs:
       - name: Select simulator
         id: simulator
         run: |
-          device=$(xcrun simctl list devices available --json | python3 -c '
-          import json, sys
-          devices = json.load(sys.stdin)["devices"]
-          names = sorted(
-              device["name"]
-              for runtime in devices.values()
-              for device in runtime
-              if device["name"].startswith("iPhone")
-          )
-          print(names[-1])
-          ')
-          echo "Selected simulator: $device"
-          echo "device=$device" >> "$GITHUB_OUTPUT"
+          destination=$(python3 .github/scripts/select_simulator.py)
+          echo "Selected destination: $destination"
+          echo "destination=$destination" >> "$GITHUB_OUTPUT"
       - name: Build and test
         run: |
           xcodebuild test \
             -project Speedometer.xcodeproj \
             -scheme Speedometer \
-            -destination "platform=iOS Simulator,name=${{ steps.simulator.outputs.device }}" \
+            -destination "${{ steps.simulator.outputs.destination }}" \
             CODE_SIGNING_ALLOWED=NO

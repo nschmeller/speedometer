@@ -1,6 +1,7 @@
 import XCTest
 @testable import Speedometer
 
+@MainActor
 final class SpeedometerModelTests: XCTestCase {
     private final class FakeSpeedSource: SpeedSource {
         var onReading: ((SpeedReading) -> Void)?

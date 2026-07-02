@@ -26,4 +26,20 @@ final class SpeedFormatterTests: XCTestCase {
     func testDeniedReadingDisplaysAsPlaceholder() {
         XCTAssertEqual(SpeedFormatter.displayValue(for: .denied, unit: .kilometersPerHour), "––")
     }
+
+    func testAccessibilityLabelSpeaksValueAndUnit() {
+        XCTAssertEqual(
+            SpeedFormatter.accessibilityLabel(for: .speed(metersPerSecond: 10), unit: .kilometersPerHour),
+            "36 kilometers per hour"
+        )
+        XCTAssertEqual(
+            SpeedFormatter.accessibilityLabel(for: .speed(metersPerSecond: 10), unit: .milesPerHour),
+            "22 miles per hour"
+        )
+    }
+
+    func testAccessibilityLabelDescribesUnavailableStates() {
+        XCTAssertEqual(SpeedFormatter.accessibilityLabel(for: .unknown, unit: .milesPerHour), "Speed unavailable")
+        XCTAssertEqual(SpeedFormatter.accessibilityLabel(for: .denied, unit: .kilometersPerHour), "Location access denied")
+    }
 }

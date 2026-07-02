@@ -1,12 +1,9 @@
 import SwiftUI
 
 struct SpeedometerView: View {
-    @StateObject private var model: SpeedometerModel
+    @StateObject private var model = SpeedometerModel(source: LocationSpeedSource())
     @AppStorage("unit") private var unit: SpeedUnit = .milesPerHour
-
-    init(model: @autoclosure @escaping () -> SpeedometerModel) {
-        _model = StateObject(wrappedValue: model())
-    }
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         VStack(spacing: 24) {
@@ -16,7 +13,7 @@ struct SpeedometerView: View {
                 .monospacedDigit()
                 .minimumScaleFactor(0.5)
                 .lineLimit(1)
-                .accessibilityLabel(accessibilityLabel)
+                .accessibilityLabel(SpeedFormatter.accessibilityLabel(for: model.reading, unit: unit))
             Picker("Unit", selection: $unit) {
                 ForEach(SpeedUnit.allCases) { unit in
                     Text(unit.symbol).tag(unit)
@@ -34,24 +31,13 @@ struct SpeedometerView: View {
         }
         .padding()
         .animation(.default, value: model.reading)
-        .onAppear {
-            UIApplication.shared.isIdleTimerDisabled = true
-            model.start()
-        }
-    }
-
-    private var accessibilityLabel: String {
-        switch model.reading {
-        case .speed:
-            "\(SpeedFormatter.displayValue(for: model.reading, unit: unit)) \(unit.symbol)"
-        case .unknown:
-            "Speed unavailable"
-        case .denied:
-            "Location access denied"
+        .onAppear(perform: model.start)
+        .onChange(of: scenePhase, initial: true) { _, phase in
+            UIApplication.shared.isIdleTimerDisabled = phase == .active
         }
     }
 }
 
 #Preview {
-    SpeedometerView(model: SpeedometerModel(source: LocationSpeedSource()))
+    SpeedometerView()
 }

@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 final class SpeedometerModel: ObservableObject {
     @Published private(set) var reading: SpeedReading = .unknown
 

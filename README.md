@@ -19,6 +19,8 @@ open Speedometer.xcodeproj
 
 ## Testing
 
+Any installed iPhone simulator works as the destination:
+
 ```sh
 xcodebuild test -project Speedometer.xcodeproj -scheme Speedometer \
   -destination 'platform=iOS Simulator,name=iPhone 16'

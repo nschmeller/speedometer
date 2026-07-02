@@ -4,7 +4,7 @@ import SwiftUI
 struct SpeedometerApp: App {
     var body: some Scene {
         WindowGroup {
-            SpeedometerView(model: SpeedometerModel(source: LocationSpeedSource()))
+            SpeedometerView()
         }
     }
 }

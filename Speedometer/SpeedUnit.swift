@@ -4,9 +4,16 @@ enum SpeedUnit: String, CaseIterable, Identifiable {
     case milesPerHour = "mph"
     case kilometersPerHour = "km/h"
 
-    var id: String { rawValue }
+    var id: Self { self }
 
     var symbol: String { rawValue }
+
+    var spokenName: String {
+        switch self {
+        case .milesPerHour: "miles per hour"
+        case .kilometersPerHour: "kilometers per hour"
+        }
+    }
 
     func value(fromMetersPerSecond speed: Double) -> Double {
         let unit: UnitSpeed = switch self {
