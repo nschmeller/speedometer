@@ -15,25 +15,19 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - name: Select Xcode
-        run: |
-          xcode=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
-          echo "Using $xcode"
-          sudo xcode-select -s "$xcode"
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate project
         run: xcodegen generate
-      - name: Select simulator
-        id: simulator
-        run: |
-          destination=$(python3 .github/scripts/select_simulator.py)
-          echo "Selected destination: $destination"
-          echo "destination=$destination" >> "$GITHUB_OUTPUT"
+      - name: Select Xcode and simulator
+        id: selection
+        run: python3 .github/scripts/select_simulator.py >> "$GITHUB_OUTPUT"
       - name: Build and test
+        env:
+          DEVELOPER_DIR: ${{ steps.selection.outputs.developer_dir }}
         run: |
           xcodebuild test \
             -project Speedometer.xcodeproj \
             -scheme Speedometer \
-            -destination "${{ steps.simulator.outputs.destination }}" \
+            -destination "${{ steps.selection.outputs.destination }}" \
             CODE_SIGNING_ALLOWED=NO
