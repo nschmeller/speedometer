@@ -4,6 +4,14 @@ enum SpeedUnit: String, CaseIterable, Identifiable {
     case milesPerHour = "mph"
     case kilometersPerHour = "km/h"
 
+    static var preferred: SpeedUnit {
+        preferred(for: Locale.current.measurementSystem)
+    }
+
+    static func preferred(for measurementSystem: Locale.MeasurementSystem) -> SpeedUnit {
+        measurementSystem == .metric ? .kilometersPerHour : .milesPerHour
+    }
+
     var id: Self { self }
 
     var symbol: String { rawValue }

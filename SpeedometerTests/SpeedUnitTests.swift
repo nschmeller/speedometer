@@ -16,6 +16,12 @@ final class SpeedUnitTests: XCTestCase {
         )
     }
 
+    func testPreferredUnitFollowsMeasurementSystem() {
+        XCTAssertEqual(SpeedUnit.preferred(for: .metric), .kilometersPerHour)
+        XCTAssertEqual(SpeedUnit.preferred(for: .us), .milesPerHour)
+        XCTAssertEqual(SpeedUnit.preferred(for: .uk), .milesPerHour)
+    }
+
     func testMetersPerSecondToKilometersPerHour() {
         XCTAssertEqual(
             SpeedUnit.kilometersPerHour.value(fromMetersPerSecond: 10),

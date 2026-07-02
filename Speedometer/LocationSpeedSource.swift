@@ -19,6 +19,7 @@ final class LocationSpeedSource: NSObject, SpeedSource {
 
     private let manager = CLLocationManager()
     private var isStarted = false
+    private var isUpdating = false
     private var stalenessTimer: Timer?
 
     override init() {
@@ -40,24 +41,42 @@ final class LocationSpeedSource: NSObject, SpeedSource {
         case .notDetermined:
             manager.requestWhenInUseAuthorization()
         case .authorizedWhenInUse, .authorizedAlways:
-            emit(.unknown)
-            manager.startUpdatingLocation()
+            beginUpdates()
         case .denied, .restricted:
-            emit(.denied)
+            endUpdates()
         @unknown default:
-            emit(.denied)
+            endUpdates()
         }
     }
 
-    private func emit(_ reading: SpeedReading) {
+    private func beginUpdates() {
+        guard !isUpdating else { return }
+        isUpdating = true
+        emit(.unknown)
+        manager.startUpdatingLocation()
+    }
+
+    private func endUpdates() {
+        isUpdating = false
+        manager.stopUpdatingLocation()
+        emit(.denied)
+    }
+
+    private func handle(_ location: CLLocation) {
+        let reading = SpeedReading(location: location)
+        emit(reading, expiry: SpeedReading.maximumLocationAge + location.timestamp.timeIntervalSinceNow)
+    }
+
+    private func emit(_ reading: SpeedReading, expiry: TimeInterval = SpeedReading.maximumLocationAge) {
         stalenessTimer?.invalidate()
         if case .speed = reading {
-            stalenessTimer = Timer.scheduledTimer(
-                withTimeInterval: SpeedReading.maximumLocationAge,
-                repeats: false
-            ) { [weak self] _ in
-                self?.emit(.unknown)
+            let timer = Timer(timeInterval: max(expiry, 0), repeats: false) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.emit(.unknown)
+                }
             }
+            RunLoop.main.add(timer, forMode: .common)
+            stalenessTimer = timer
         }
         onReading?(reading)
     }
@@ -66,22 +85,26 @@ final class LocationSpeedSource: NSObject, SpeedSource {
 extension LocationSpeedSource: CLLocationManagerDelegate {
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let status = manager.authorizationStatus
-        DispatchQueue.main.async {
-            self.apply(status)
-        }
+        onMain { $0.apply(status) }
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
-        DispatchQueue.main.async {
-            self.emit(SpeedReading(location: location))
-        }
+        onMain { $0.handle(location) }
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        let reading: SpeedReading = (error as? CLError)?.code == .denied ? .denied : .unknown
-        DispatchQueue.main.async {
-            self.emit(reading)
+        let code = (error as? CLError)?.code
+        guard code != .locationUnknown else { return }
+        let reading: SpeedReading = code == .denied ? .denied : .unknown
+        onMain { $0.emit(reading) }
+    }
+
+    private nonisolated func onMain(_ work: @escaping @MainActor (LocationSpeedSource) -> Void) {
+        if Thread.isMainThread {
+            MainActor.assumeIsolated { work(self) }
+        } else {
+            DispatchQueue.main.async { work(self) }
         }
     }
 }

@@ -25,9 +25,11 @@ jobs:
       - name: Build and test
         env:
           DEVELOPER_DIR: ${{ steps.selection.outputs.developer_dir }}
+          DESTINATION: ${{ steps.selection.outputs.destination }}
         run: |
           xcodebuild test \
             -project Speedometer.xcodeproj \
             -scheme Speedometer \
-            -destination "${{ steps.selection.outputs.destination }}" \
-            CODE_SIGNING_ALLOWED=NO
+            -destination "$DESTINATION" \
+            CODE_SIGNING_ALLOWED=NO \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=YES

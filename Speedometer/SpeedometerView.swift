@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SpeedometerView: View {
     @StateObject private var model = SpeedometerModel(source: LocationSpeedSource())
-    @AppStorage("unit") private var unit: SpeedUnit = .milesPerHour
+    @AppStorage("unit") private var unit = SpeedUnit.preferred
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
