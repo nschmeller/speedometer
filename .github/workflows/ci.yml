@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate project
+        run: xcodegen generate
+      - name: Select simulator
+        id: simulator
+        run: |
+          device=$(xcrun simctl list devices available --json | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          names = sorted(
+              device["name"]
+              for runtime in devices.values()
+              for device in runtime
+              if device["name"].startswith("iPhone")
+          )
+          print(names[-1])
+          ')
+          echo "Selected simulator: $device"
+          echo "device=$device" >> "$GITHUB_OUTPUT"
+      - name: Build and test
+        run: |
+          xcodebuild test \
+            -project Speedometer.xcodeproj \
+            -scheme Speedometer \
+            -destination "platform=iOS Simulator,name=${{ steps.simulator.outputs.device }}" \
+            CODE_SIGNING_ALLOWED=NO
