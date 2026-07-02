@@ -27,6 +27,15 @@ final class SpeedFormatterTests: XCTestCase {
         XCTAssertEqual(SpeedFormatter.displayValue(for: .denied, unit: .kilometersPerHour), "––")
     }
 
+    func testStatusTextDescribesUnavailableStates() {
+        XCTAssertNil(SpeedFormatter.statusText(for: .speed(metersPerSecond: 3)))
+        XCTAssertEqual(SpeedFormatter.statusText(for: .unknown), "Waiting for a GPS signal.")
+        XCTAssertEqual(
+            SpeedFormatter.statusText(for: .denied),
+            "Speedometer needs location access. You can allow it in Settings."
+        )
+    }
+
     func testAccessibilityLabelSpeaksValueAndUnit() {
         XCTAssertEqual(
             SpeedFormatter.accessibilityLabel(for: .speed(metersPerSecond: 10), unit: .kilometersPerHour),

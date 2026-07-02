@@ -24,6 +24,11 @@ final class SpeedReadingTests: XCTestCase {
         )
     }
 
+    func testPoorSpeedAccuracyIsUnknown() {
+        let imprecise = location(speed: 5, speedAccuracy: SpeedReading.maximumSpeedAccuracy + 1)
+        XCTAssertEqual(SpeedReading(location: imprecise, now: Date()), .unknown)
+    }
+
     func testStaleLocationIsUnknown() {
         let stale = location(speed: 5, speedAccuracy: 1, age: SpeedReading.maximumLocationAge + 1)
         XCTAssertEqual(SpeedReading(location: stale, now: Date()), .unknown)

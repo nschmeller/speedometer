@@ -2,10 +2,13 @@ import CoreLocation
 
 extension SpeedReading {
     static let maximumLocationAge: TimeInterval = 10
+    static let maximumSpeedAccuracy: CLLocationSpeedAccuracy = 5
 
     init(location: CLLocation, now: Date = Date()) {
         let age = now.timeIntervalSince(location.timestamp)
-        if age <= Self.maximumLocationAge, location.speed >= 0, location.speedAccuracy >= 0 {
+        if age <= Self.maximumLocationAge,
+           location.speed >= 0,
+           (0...Self.maximumSpeedAccuracy).contains(location.speedAccuracy) {
             self = .speed(metersPerSecond: location.speed)
         } else {
             self = .unknown
@@ -17,12 +20,13 @@ extension SpeedReading {
 final class LocationSpeedSource: NSObject, SpeedSource {
     var onReading: ((SpeedReading) -> Void)?
 
-    private let manager = CLLocationManager()
+    private let manager: CLLocationManager
     private var isStarted = false
     private var isUpdating = false
     private var stalenessTimer: Timer?
 
-    override init() {
+    init(manager: CLLocationManager = CLLocationManager()) {
+        self.manager = manager
         super.init()
         manager.desiredAccuracy = kCLLocationAccuracyBest
         manager.activityType = .otherNavigation
@@ -94,10 +98,8 @@ extension LocationSpeedSource: CLLocationManagerDelegate {
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        let code = (error as? CLError)?.code
-        guard code != .locationUnknown else { return }
-        let reading: SpeedReading = code == .denied ? .denied : .unknown
-        onMain { $0.emit(reading) }
+        guard (error as? CLError)?.code == .denied else { return }
+        onMain { $0.endUpdates() }
     }
 
     private nonisolated func onMain(_ work: @escaping @MainActor (LocationSpeedSource) -> Void) {
