@@ -1,32 +1,43 @@
-import json
+import re
 import subprocess
 import sys
 
 
 def main():
     listing = subprocess.run(
-        ["xcrun", "simctl", "list", "devices", "available", "--json"],
+        [
+            "xcodebuild",
+            "-showdestinations",
+            "-project",
+            "Speedometer.xcodeproj",
+            "-scheme",
+            "Speedometer",
+        ],
         capture_output=True,
         text=True,
         check=True,
     )
+    eligible = listing.stdout.split("Ineligible destinations")[0]
     candidates = []
-    for runtime, devices in json.loads(listing.stdout)["devices"].items():
-        suffix = runtime.rsplit(".", 1)[-1]
-        if not suffix.startswith("iOS-"):
+    for chunk in re.findall(r"\{([^}]*)\}", eligible):
+        fields = dict(
+            part.strip().split(":", 1) for part in chunk.split(",") if ":" in part
+        )
+        if (
+            fields.get("platform") != "iOS Simulator"
+            or "OS" not in fields
+            or not fields.get("name", "").startswith("iPhone")
+        ):
             continue
-        version = tuple(int(part) for part in suffix.removeprefix("iOS-").split("-"))
-        candidates += [
-            (version, device["name"])
-            for device in devices
-            if device["name"].startswith("iPhone")
-        ]
+        version = tuple(int(part) for part in fields["OS"].split("."))
+        candidates.append((version, fields["name"], fields["id"]))
     if not candidates:
-        sys.exit("No available iPhone simulator found")
-    newest = max(version for version, _ in candidates)
-    name = min(name for version, name in candidates if version == newest)
-    os_version = ".".join(str(part) for part in newest)
-    print(f"platform=iOS Simulator,name={name},OS={os_version}")
+        sys.exit(f"No eligible iPhone simulator destination in:\n{listing.stdout}")
+    newest = max(version for version, _, _ in candidates)
+    version, name, identifier = min(c for c in candidates if c[0] == newest)
+    os_version = ".".join(str(part) for part in version)
+    print(f"Selected: {name} (iOS {os_version})", file=sys.stderr)
+    print(f"platform=iOS Simulator,id={identifier}")
 
 
 if __name__ == "__main__":

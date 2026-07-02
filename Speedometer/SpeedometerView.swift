@@ -33,7 +33,7 @@ struct SpeedometerView: View {
         .animation(.default, value: model.reading)
         .onAppear(perform: model.start)
         .onChange(of: scenePhase, initial: true) { _, phase in
-            UIApplication.shared.isIdleTimerDisabled = phase == .active
+            UIApplication.shared.isIdleTimerDisabled = phase != .background
         }
     }
 }

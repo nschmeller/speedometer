@@ -19,6 +19,7 @@ final class LocationSpeedSource: NSObject, SpeedSource {
 
     private let manager = CLLocationManager()
     private var isStarted = false
+    private var stalenessTimer: Timer?
 
     override init() {
         super.init()
@@ -39,35 +40,48 @@ final class LocationSpeedSource: NSObject, SpeedSource {
         case .notDetermined:
             manager.requestWhenInUseAuthorization()
         case .authorizedWhenInUse, .authorizedAlways:
+            emit(.unknown)
             manager.startUpdatingLocation()
         case .denied, .restricted:
-            onReading?(.denied)
+            emit(.denied)
         @unknown default:
-            onReading?(.denied)
+            emit(.denied)
         }
+    }
+
+    private func emit(_ reading: SpeedReading) {
+        stalenessTimer?.invalidate()
+        if case .speed = reading {
+            stalenessTimer = Timer.scheduledTimer(
+                withTimeInterval: SpeedReading.maximumLocationAge,
+                repeats: false
+            ) { [weak self] _ in
+                self?.emit(.unknown)
+            }
+        }
+        onReading?(reading)
     }
 }
 
 extension LocationSpeedSource: CLLocationManagerDelegate {
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let status = manager.authorizationStatus
-        MainActor.assumeIsolated {
-            apply(status)
+        DispatchQueue.main.async {
+            self.apply(status)
         }
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
-        let reading = SpeedReading(location: location)
-        MainActor.assumeIsolated {
-            onReading?(reading)
+        DispatchQueue.main.async {
+            self.emit(SpeedReading(location: location))
         }
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         let reading: SpeedReading = (error as? CLError)?.code == .denied ? .denied : .unknown
-        MainActor.assumeIsolated {
-            onReading?(reading)
+        DispatchQueue.main.async {
+            self.emit(reading)
         }
     }
 }
