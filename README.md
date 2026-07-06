@@ -1,5 +1,7 @@
 # Speedometer
 
+[![CI](https://github.com/nschmeller/speedometer/actions/workflows/ci.yml/badge.svg)](https://github.com/nschmeller/speedometer/actions/workflows/ci.yml)
+
 A dead-simple iOS speedometer. It shows your current GPS speed in mph or
 km/h. Nothing else.
 

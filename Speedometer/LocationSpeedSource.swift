@@ -106,7 +106,7 @@ extension LocationSpeedSource: CLLocationManagerDelegate {
         if Thread.isMainThread {
             MainActor.assumeIsolated { work(self) }
         } else {
-            DispatchQueue.main.async { work(self) }
+            DispatchQueue.main.async { MainActor.assumeIsolated { work(self) } }
         }
     }
 }

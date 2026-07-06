@@ -13,6 +13,7 @@ struct SpeedometerView: View {
                 .monospacedDigit()
                 .minimumScaleFactor(0.5)
                 .lineLimit(1)
+                .contentTransition(.numericText())
                 .accessibilityLabel(SpeedFormatter.accessibilityLabel(for: model.reading, unit: unit))
             Picker("Unit", selection: $unit) {
                 ForEach(SpeedUnit.allCases) { unit in
@@ -32,6 +33,7 @@ struct SpeedometerView: View {
             }
         }
         .padding()
+        .preferredColorScheme(.dark)
         .animation(.default, value: model.reading)
         .onAppear(perform: model.start)
         .onChange(of: keepsScreenAwake, initial: true) { _, keepAwake in
